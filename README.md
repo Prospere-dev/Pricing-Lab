@@ -2,7 +2,7 @@
 
 Ce projet calcule le prix d'une option de quatre façons différentes, puis compare les résultats avec la formule exacte de Black-Scholes.
 
-**Démo interactive :**
+**Démo interactive :** [Ouvrir la démo](https://prospere-dev.github.io/Pricing-Lab/lab/)
 
 ## D'où viennent les formules
 
