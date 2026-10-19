@@ -2,7 +2,7 @@
 
 Ce projet calcule le prix d'une option de quatre façons différentes, puis compare les résultats avec la formule exacte de Black-Scholes.
 
-**Démo interactive :** [lien GitHub Pages] - **Auteur :** [Nom]
+**Démo interactive :**
 
 ## D'où viennent les formules
 
