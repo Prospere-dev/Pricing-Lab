@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout : colonne de réglages fixe à gauche, quatre cartes-questions à droite ; une carte = une question, un graphique, une lecture calculée. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#10141b; --ink2:#47505f; --muted:#79829a;
+  --line:#e2e5eb; --grid:#eceef3; --accent:#2a78d6; --accent-soft:#e8f0fb;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --ok:#0b7a4b; --ok-bg:#e3f4ea; --bad:#b3261e; --bad-bg:#fbe9e7;
+  --font:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  --bg:#0d1117; --surface:#151b23; --ink:#eef1f6; --ink2:#b3bccb; --muted:#8792a6;
+  --line:#252d39; --grid:#1d2530; --accent:#3987e5; --accent-soft:#18283d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --ok:#5fd09a; --ok-bg:#12281d; --bad:#ff8a80; --bad-bg:#2d1715; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--font);margin:0;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto}
+header.top{padding-block:36px 22px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+h1{font:600 clamp(28px,4.4vw,40px)/1.1 var(--font);letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+.sub{max-width:62ch;color:var(--ink2);margin:0}
+.checks{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0;padding:0;list-style:none}
+.checks li{font:400 12px/1.3 var(--mono);padding:6px 10px;border-radius:6px;display:flex;gap:6px;align-items:center}
+.checks .ok{background:var(--ok-bg);color:var(--ok)} .checks .bad{background:var(--bad-bg);color:var(--bad)}
+.layout{display:grid;grid-template-columns:292px minmax(0,1fr);gap:24px;align-items:start;padding-bottom:48px}
+aside.controls{position:sticky;top:max(16px,env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:16px;min-width:0}
+aside h2{font:600 13px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+.field{display:grid;gap:6px}
+.field label,.field legend{font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;gap:8px;padding:0}
+.field output{font:500 13px var(--mono);color:var(--ink)}
+fieldset.field{border:0;margin:0;padding:0;min-width:0}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0;height:24px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:8px;text-align:center;font-size:14px;cursor:pointer;color:var(--ink2);justify-content:center}
+.seg input:checked+label{background:var(--accent);color:#fff;font-weight:500}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-2px}
+button{font:500 13px var(--font);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 12px;border-radius:8px;cursor:pointer}
+button:hover{border-color:var(--accent)} button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fixed{font:400 12px/1.5 var(--mono);color:var(--muted);margin:0}
+.stack{display:grid;gap:20px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;min-width:0}
+.card h2{font:600 19px/1.25 var(--font);letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
+.card .ctx{font:400 12px/1.4 var(--mono);color:var(--muted);margin:0 0 16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin-bottom:12px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-width:0}
+.tile span{display:block;font-size:12px;color:var(--muted)}
+.tile b{font:500 17px/1.3 var(--mono);font-variant-numeric:tabular-nums}
+.plot{position:relative;width:100%}
+.plot svg{display:block;width:100%;height:auto;overflow:visible}
+.plot text{font:400 11px var(--font);fill:var(--muted)}
+.plot .lbl{font-weight:500;fill:var(--ink2)} .plot .axt{fill:var(--ink2);font-size:12px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:400 12px/1.5 var(--mono);box-shadow:0 4px 18px rgb(0 0 0 / .12);white-space:nowrap;z-index:2}
+.tip i{font-style:normal;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 6px;padding:0;list-style:none;font-size:12px;color:var(--ink2)}
+.legend li{display:flex;align-items:center;gap:6px}
+.legend svg{width:22px;height:8px;overflow:visible}
+.read{margin:14px 0 0;padding-top:14px;border-top:1px solid var(--line);color:var(--ink);max-width:74ch}
+.read b{font-family:var(--mono);font-weight:500;font-size:.94em}
+.read strong{font-weight:600}
+.read .tag{display:block;font:500 11px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+details{margin-top:10px;font-size:13px;color:var(--ink2)} summary{cursor:pointer}
+.tbl{overflow-x:auto;margin-top:8px} table{border-collapse:collapse;font:400 12px var(--mono);width:100%}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap} th{color:var(--muted);font-weight:500}
+.empty{padding:36px 8px;color:var(--ink2);text-align:center;border:1px dashed var(--line);border-radius:8px}
+footer{border-top:1px solid var(--line);padding-block:24px 48px;color:var(--ink2);font-size:13px;max-width:78ch}
+footer p{margin:0 0 8px}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)} aside.controls{position:static}.card{padding:16px}}
+@media (prefers-reduced-motion:no-preference){.tile b,.read b{transition:color .2s}}
+</style>
+</head>
+<body>
+
+  
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow">Finance quantitative  -  options européennes et américaines</p>
+  <h1>Pricing Lab</h1>
+  <p class="sub">Quatre questions sur le prix d'une option, répondues par le calcul. Changez un paramètre à gauche : chaque graphique et chaque phrase de lecture se recalculent. Tout tourne dans le navigateur.</p>
+  <p><button type="button" id="theme">Passer en thème sombre</button></p>
+  <ul class="checks" id="checks" aria-label="Contrôles de cohérence du moteur"></ul>
+</header>
+
+<div class="layout">
+<aside class="controls" aria-label="Paramètres">
+  <h2>Paramètres</h2>
+  <fieldset class="field"><legend>Type d'option</legend>
+    <div class="seg"><input type="radio" name="type" id="t-call" value="call"><label for="t-call">Call</label><input type="radio" name="type" id="t-put" value="put" checked><label for="t-put">Put</label></div>
+  </fieldset>
+  <div class="field"><label for="K">Strike K <output id="o-K"></output></label><input id="K" type="range" min="50" max="150" step="1" value="100"></div>
+  <div class="field"><label for="sig">Volatilité (sigma) <output id="o-sig"></output></label><input id="sig" type="range" min="5" max="80" step="1" value="20"></div>
+  <div class="field"><label for="r">Taux sans risque r <output id="o-r"></output></label><input id="r" type="range" min="0" max="10" step="0.25" value="5"></div>
+  <div class="field"><label for="T">Durée T <output id="o-T"></output></label><input id="T" type="range" min="0.1" max="3" step="0.05" value="1"></div>
+  <div class="field"><label for="q">Dividende continu q <output id="o-q"></output></label><input id="q" type="range" min="0" max="8" step="0.25" value="0"></div>
+  <div class="field"><label for="paths">Simulations Monte Carlo <output id="o-paths"></output></label><input id="paths" type="range" min="1000" max="50000" step="1000" value="10000"></div>
+  <p class="fixed">Action S0 = 100<br>Modèle : mouvement brownien géométrique</p>
+  <button type="button" id="reset">Réinitialiser</button>
+</aside>
+
+<div class="stack">
+  <article class="card" id="cA" aria-labelledby="hA">
+    <h2 id="hA">Que vaut l'option aujourd'hui, et comment réagit-elle ?</h2>
+    <p class="ctx" id="ctxA"></p>
+    <div class="tiles" id="tilesA"></div>
+    <ul class="legend" id="lgA"></ul>
+    <div class="plot" id="pA"></div>
+    <p class="read" id="rA"></p>
+    <details><summary>Voir les valeurs</summary><div class="tbl" id="tA"></div></details>
+  </article>
+
+  <article class="card" id="cB" aria-labelledby="hB">
+    <h2 id="hB">À quelle vitesse l'arbre binomial converge-t-il vers Black-Scholes ?</h2>
+    <p class="ctx" id="ctxB"></p>
+    <ul class="legend" id="lgB"></ul>
+    <div class="plot" id="pB"></div>
+    <p class="read" id="rB"></p>
+    <details><summary>Voir les valeurs</summary><div class="tbl" id="tB"></div></details>
+  </article>
+
+  <article class="card" id="cC" aria-labelledby="hC">
+    <h2 id="hC">Combien de simulations faut-il, et que gagne-t-on avec une variable de contrôle ?</h2>
+    <p class="ctx" id="ctxC"></p>
+    <ul class="legend" id="lgC"></ul>
+    <div class="plot" id="pC"></div>
+    <p class="read" id="rC"></p>
+    <p><button type="button" id="resim">Nouvelle simulation</button></p>
+    <details><summary>Voir les valeurs</summary><div class="tbl" id="tC"></div></details>
+  </article>
+
+  <article class="card" id="cD" aria-labelledby="hD">
+    <h2 id="hD">Quand vaut-il mieux exercer avant l'échéance ?</h2>
+    <p class="ctx" id="ctxD"></p>
+    <ul class="legend" id="lgD"></ul>
+    <div class="plot" id="pD"></div>
+    <p class="read" id="rD"></p>
+    <details><summary>Voir les valeurs</summary><div class="tbl" id="tD"></div></details>
+  </article>
+</div>
+</div>
+
+<footer>
+  <p><b>Hypothèses.</b> Le prix de l'action suit un modèle aléatoire classique (mouvement brownien géométrique), avec un taux r, un dividende q et une volatilité sigma constants. Option européenne : exercice à l'échéance seulement. Option américaine : exercice possible à chaque nœud de l'arbre.</p>
+  <p><b>Méthodes.</b> Black-Scholes (formule exacte) ; arbre binomial à N pas ; Monte Carlo avec variable de contrôle (le prix de l'action à l'échéance, dont on connaît la moyenne) ; seuil d'exercice lu dans l'arbre à 400 pas.</p>
+  <p><b>Limites.</b> La volatilité est supposée constante, alors que celle du marché varie. Monte Carlo calcule seulement le prix de l'option européenne.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ============================ MOTEUR ============================ */
+function cnd(x){ // fonction de répartition de la loi normale
+  const a=Math.abs(x); let c;
+  if(a>37) c=0; else {
+    const e=Math.exp(-a*a/2);
+    if(a<7.07106781186547){
+      let b=3.52624965998911e-02*a+0.700383064443688;
+      b=b*a+6.37396220353165; b=b*a+33.912866078383; b=b*a+112.079291497871; b=b*a+221.213596169931; b=b*a+220.206867912376;
+      let d=8.83883476483184e-02*a+1.75566716318264;
+      d=d*a+16.064177579207; d=d*a+86.7807322029461; d=d*a+296.564248779674; d=d*a+637.333633378831; d=d*a+793.826512519948; d=d*a+440.413735824752;
+      c=e*b/d;
+    } else { let b=a+0.65; b=a+4/b; b=a+3/b; b=a+2/b; b=a+1/b; c=e/b/2.506628274631; }
+  }
+  return x>0?1-c:c;
+}
+const pdf=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+function bs(S,K,r,sig,T,type,q){
+  const sd=sig*Math.sqrt(T), d1=(Math.log(S/K)+(r-q+sig*sig/2)*T)/sd, d2=d1-sd;
+  return type==='call' ? S*Math.exp(-q*T)*cnd(d1)-K*Math.exp(-r*T)*cnd(d2)
+                       : K*Math.exp(-r*T)*cnd(-d2)-S*Math.exp(-q*T)*cnd(-d1);
+}
+function greeks(S,K,r,sig,T,type,q){
+  const sq=Math.sqrt(T), sd=sig*sq, d1=(Math.log(S/K)+(r-q+sig*sig/2)*T)/sd, d2=d1-sd;
+  const eq=Math.exp(-q*T), er=Math.exp(-r*T), call=type==='call';
+  const delta=call?eq*cnd(d1):-eq*cnd(-d1);
+  const gamma=eq*pdf(d1)/(S*sd);
+  const vega=S*eq*pdf(d1)*sq;
+  const theta=call? -S*eq*pdf(d1)*sig/(2*sq)-r*K*er*cnd(d2)+q*S*eq*cnd(d1)
+                  : -S*eq*pdf(d1)*sig/(2*sq)+r*K*er*cnd(-d2)-q*S*eq*cnd(-d1);
+  const rho=call? K*T*er*cnd(d2) : -K*T*er*cnd(-d2);
+  return {delta,gamma,vega,theta,rho};
+}
+function crr(S,K,r,sig,T,N,type,american,q){
+  const dt=T/N, h=sig*Math.sqrt(dt), u=Math.exp(h), d=1/u, p=(Math.exp((r-q)*dt)-d)/(u-d);
+  if(!(p>0&&p<1)) return NaN;
+  const disc=Math.exp(-r*dt), sg=type==='call'?1:-1;
+  const pw=new Float64Array(2*N+1); for(let k=-N;k<=N;k++) pw[k+N]=Math.exp(k*h);
+  let V=new Float64Array(N+1);
+  for(let j=0;j<=N;j++) V[j]=Math.max(sg*(S*pw[2*j]-K),0);
+  for(let n=N-1;n>=0;n--){
+    for(let j=0;j<=n;j++){
+      let c=disc*(p*V[j+1]+(1-p)*V[j]);
+      if(american){ const ex=sg*(S*pw[2*j-n+N]-K); if(ex>c) c=ex; }
+      V[j]=c;
+    }
+  }
+  return V[0];
+}
+function boundary(S,K,r,sig,T,N,type,q){ // seuil d'exercice en fonction du temps
+  const dt=T/N, h=sig*Math.sqrt(dt), u=Math.exp(h), d=1/u, p=(Math.exp((r-q)*dt)-d)/(u-d);
+  if(!(p>0&&p<1)) return null;
+  const disc=Math.exp(-r*dt), sg=type==='call'?1:-1;
+  const pw=new Float64Array(2*N+1); for(let k=-N;k<=N;k++) pw[k+N]=Math.exp(k*h);
+  let V=new Float64Array(N+2);
+  for(let j=0;j<=N;j++) V[j]=Math.max(sg*(S*pw[2*j]-K),0);
+  const lim=type==='put'?(q>0?Math.min(K,r*K/q):K):(q>0?Math.max(K,r*K/q):K);
+  const t=[T], b=[lim];
+  for(let n=N-1;n>=1;n--){
+    let jEx=-1, jExMin=n+1;
+    for(let j=0;j<=n;j++){
+      const c=disc*(p*V[j+1]+(1-p)*V[j]), ex=sg*(S*pw[2*j-n+N]-K);
+      if(ex>c&&ex>0){ V[j]=ex; jEx=j; if(j<jExMin) jExMin=j; } else V[j]=c;
+    }
+    if(type==='put'){ if(jEx>=0&&jEx<n){ t.push(n*dt); b.push(S*pw[2*jEx-n+N]); } }
+    else { if(jExMin<=n&&jExMin>0){ t.push(n*dt); b.push(S*pw[2*jExMin-n+N]); } }
+  }
+  return {t:t.reverse(), b:b.reverse()};
+}
+function rng(seed){ let a=seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function monteCarlo(S,K,r,sig,T,type,q,n,seed){
+  const R=rng(seed), sg=type==='call'?1:-1, er=Math.exp(-r*T), drift=(r-q-sig*sig/2)*T, vol=sig*Math.sqrt(T);
+  const EX=S*Math.exp(-q*T); // E[e^{-rT} S_T] = S e^{-qT}
+  const marks=[]; for(let i=0;i<=70;i++){ const m=Math.round(Math.exp(Math.log(100)+(Math.log(n)-Math.log(100))*i/70)); if(!marks.length||m>marks[marks.length-1]) marks.push(m); }
+  let sy=0,sx=0,syy=0,sxx=0,sxy=0,m=0,z2=null,mi=0;
+  const out={m:[],plain:[],plainHW:[],cv:[],cvHW:[]};
+  for(let i=0;i<n;i++){
+    let z; if(z2!==null){ z=z2; z2=null; } else { const u1=Math.max(R(),1e-300),u2=R(),rad=Math.sqrt(-2*Math.log(u1)); z=rad*Math.cos(2*Math.PI*u2); z2=rad*Math.sin(2*Math.PI*u2); }
+    const ST=S*Math.exp(drift+vol*z), y=er*Math.max(sg*(ST-K),0), x=er*ST;
+    sy+=y; sx+=x; syy+=y*y; sxx+=x*x; sxy+=x*y; m++;
+    if(m===marks[mi]){
+      mi++;
+      const my=sy/m, mx=sx/m, vy=(syy-m*my*my)/(m-1), vx=(sxx-m*mx*mx)/(m-1), cxy=(sxy-m*mx*my)/(m-1);
+      const beta=vx>0?cxy/vx:0, vres=Math.max(vy-(vx>0?cxy*cxy/vx:0),0);
+      out.m.push(m); out.plain.push(my); out.plainHW.push(1.96*Math.sqrt(vy/m));
+      out.cv.push(my-beta*(mx-EX)); out.cvHW.push(1.96*Math.sqrt(vres/m));
+      out.vy=vy; out.vres=vres;
+    }
+  }
+  out.vrf=out.vy/Math.max(out.vres,1e-300);
+  return out;
+}
+window.PricingEngine={cnd,bs,greeks,crr,boundary,monteCarlo};
+
+/* ============================ OUTILS ============================ */
+const $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
+const f=(x,d=2)=>x.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}).replace(/[\u202f\u00a0]/g,' ');
+const sci=x=>x===0?'0':x.toExponential(1).replace('.',',');
+const pct=(x,d=1)=>f(x*100,d)+' %';
+function el(tag,attrs,parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function nice(lo,hi,n){ const span=hi-lo, s0=span/n, mag=Math.pow(10,Math.floor(Math.log10(s0))), r=s0/mag, st=(r<1.5?1:r<3?2:r<7?5:10)*mag, t=[]; for(let v=Math.ceil(lo/st-1e-9)*st; v<=hi+1e-9; v+=st) t.push(+v.toPrecision(12)); return t; }
+function path(xs,ys,X,Y){ let s=''; for(let i=0;i<xs.length;i++){ if(!isFinite(ys[i])) continue; s+=(s?'L':'M')+X(xs[i]).toFixed(1)+' '+Y(ys[i]).toFixed(1); } return s; }
+
+/* Graphique générique : axes, grille, couches, survol. */
+function chart(host,cfg){
+  host.innerHTML='';
+  const W=Math.max(host.clientWidth,260), H=W<480?250:300, m={l:W<480?46:56,r:12,t:10,b:42};
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':cfg.aria},host);
+  const lx=cfg.xlog?Math.log10:v=>v, ly=cfg.ylog?Math.log10:v=>v;
+  const x0=lx(cfg.xd[0]),x1=lx(cfg.xd[1]),y0=ly(cfg.yd[0]),y1=ly(cfg.yd[1]);
+  const X=v=>m.l+(lx(v)-x0)/(x1-x0)*(W-m.l-m.r), Y=v=>H-m.b-(ly(v)-y0)/(y1-y0)*(H-m.t-m.b);
+  const g=el('g',{},svg);
+  const ticks=(lo,hi,log)=>{ if(!log) return nice(lo,hi,5); const t=[]; for(let k=Math.ceil(Math.log10(lo)-1e-9);k<=Math.floor(Math.log10(hi)+1e-9);k++) t.push(Math.pow(10,k)); return t; };
+  ticks(cfg.yd[0],cfg.yd[1],cfg.ylog).forEach(v=>{
+    el('line',{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),stroke:'var(--grid)','stroke-width':1},g);
+    const t=el('text',{x:m.l-8,y:Y(v)+4,'text-anchor':'end'},g); t.textContent=cfg.yfmt(v);
+  });
+  ticks(cfg.xd[0],cfg.xd[1],cfg.xlog).forEach(v=>{
+    el('line',{x1:X(v),x2:X(v),y1:H-m.b,y2:H-m.b+4,stroke:'var(--muted)'},g);
+    const t=el('text',{x:X(v),y:H-m.b+17,'text-anchor':'middle'},g); t.textContent=cfg.xfmt(v);
+  });
+  el('line',{x1:m.l,x2:W-m.r,y1:H-m.b,y2:H-m.b,stroke:'var(--muted)'},g);
+  const xl=el('text',{x:(m.l+W-m.r)/2,y:H-6,'text-anchor':'middle',class:'axt'},g); xl.textContent=cfg.xlabel;
+  const yl=el('text',{x:0,y:0,'text-anchor':'middle',class:'axt',transform:`translate(11 ${(m.t+H-m.b)/2}) rotate(-90)`},g); yl.textContent=cfg.ylabel;
+  const clip='c'+Math.random().toString(36).slice(2,8);
+  const cp=el('clipPath',{id:clip},svg); el('rect',{x:m.l,y:m.t-2,width:W-m.l-m.r,height:H-m.t-m.b+4},cp);
+  const L=el('g',{'clip-path':`url(#${clip})`},svg);
+  cfg.layers({L,X,Y,el,svg,W,H,m});
+  if(cfg.hover){
+    const hv=el('g',{},svg), vl=el('line',{y1:m.t,y2:H-m.b,stroke:'var(--ink2)','stroke-dasharray':'3 3',visibility:'hidden'},hv);
+    const dots=el('g',{},hv);
+    const tip=document.createElement('div'); tip.className='tip'; tip.hidden=true; host.appendChild(tip);
+    const hit=el('rect',{x:m.l,y:m.t,width:W-m.l-m.r,height:H-m.t-m.b,fill:'transparent',style:'touch-action:pan-y'},svg);
+    const xs=cfg.hover.xs, inv=px=>{ const u=x0+(px-m.l)/(W-m.l-m.r)*(x1-x0); return cfg.xlog?Math.pow(10,u):u; };
+    const move=e=>{
+      const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)*W/r.width, xv=inv(px);
+      let lo=0,hi=xs.length-1; while(hi-lo>1){ const mid=(lo+hi)>>1; if(xs[mid]<xv) lo=mid; else hi=mid; }
+      const i=Math.abs(xs[lo]-xv)<=Math.abs(xs[hi]-xv)?lo:hi, cx=X(xs[i]);
+      vl.setAttribute('x1',cx); vl.setAttribute('x2',cx); vl.setAttribute('visibility','visible');
+      dots.innerHTML=''; (cfg.hover.dots?cfg.hover.dots(i):[]).forEach(d=>el('circle',{cx:X(d.x),cy:Y(d.y),r:4,fill:d.c,stroke:'var(--surface)','stroke-width':2},dots));
+      tip.innerHTML=cfg.hover.tip(i); tip.hidden=false;
+      const tw=tip.offsetWidth, left=cx*r.width/W+14; tip.style.left=(left+tw>r.width?cx*r.width/W-tw-14:left)+'px'; tip.style.top='8px';
+    };
+    const leave=()=>{ vl.setAttribute('visibility','hidden'); dots.innerHTML=''; tip.hidden=true; };
+    hit.addEventListener('pointermove',move); hit.addEventListener('pointerdown',move); hit.addEventListener('pointerleave',leave);
+  }
+}
+function legend(ul,items){ ul.innerHTML=items.map(i=>`<li><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="${i.c}" stroke-width="${i.w||2}" ${i.d?`stroke-dasharray="${i.d}"`:''} ${i.o?`opacity="${i.o}"`:''}/></svg>${i.t}</li>`).join(''); }
+function table(host,head,rows){ host.innerHTML='<table><thead><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join('')+'</tbody></table>'; }
+function sample(a,k){ if(a.length<=k) return a.map((_,i)=>i); const o=[]; for(let i=0;i<k;i++) o.push(Math.round(i*(a.length-1)/(k-1))); return o; }
+
+/* ============================ ÉTAT ============================ */
+const DEF={type:'put',K:100,sig:20,r:5,T:1,q:0,paths:10000};
+let st=Object.assign({},DEF), seed=7;
+const S0=100;
+const P=()=>({K:st.K,sig:st.sig/100,r:st.r/100,T:st.T,q:st.q/100,type:st.type});
+
+function render(){
+  const p=P(), nm=p.type==='call'?'call':'put', Nm=p.type==='call'?'Call':'Put';
+  $('o-K').textContent=f(st.K,0); $('o-sig').textContent=f(st.sig,0)+' %'; $('o-r').textContent=f(st.r,2)+' %';
+  $('o-T').textContent=f(st.T,2)+' an'+(st.T>=2?'s':''); $('o-q').textContent=f(st.q,2)+' %'; $('o-paths').textContent=f(st.paths,0);
+  const ctx=`${Nm}  -  S0 = 100  -  K = ${f(p.K,0)}  -  sigma = ${pct(p.sig,0)}  -  r = ${pct(p.r,2)}  -  T = ${f(p.T,2)}  -  q = ${pct(p.q,2)}`;
+  ['ctxA','ctxB','ctxC','ctxD'].forEach(i=>$(i).textContent=ctx);
+  checks(p); drawA(p,nm); drawB(p,nm); drawC(p,nm); drawD(p,nm);
+}
+
+/* --- vérifications --- */
+function checks(p){
+  const other=p.type==='call'?'put':'call';
+  const hull=Math.abs(bs(100,100,.05,.2,1,'call',0)-10.4506)<5e-5;
+  const parity=Math.abs(bs(S0,p.K,p.r,p.sig,p.T,'call',p.q)-bs(S0,p.K,p.r,p.sig,p.T,'put',p.q)-(S0*Math.exp(-p.q*p.T)-p.K*Math.exp(-p.r*p.T)))<1e-10;
+  const tp=Math.abs(crr(S0,p.K,p.r,p.sig,p.T,200,'call',false,p.q)-crr(S0,p.K,p.r,p.sig,p.T,200,'put',false,p.q)-(S0*Math.exp(-p.q*p.T)-p.K*Math.exp(-p.r*p.T)));
+  const tree=!isFinite(tp)||tp<1e-9;
+  const ac=Math.abs(crr(S0,p.K,p.r,p.sig,p.T,200,'call',true,0)-crr(S0,p.K,p.r,p.sig,p.T,200,'call',false,0));
+  const items=[[hull,'BS(100, 100, 5 %, 20 %, 1) = 10,4506 (référence classique)'],[parity,'parité call-put vérifiée avec la formule'],[tree,'parité call-put vérifiée dans l\'arbre'],[!isFinite(ac)||ac<1e-9,'call américain = européen quand q = 0']];
+  $('checks').innerHTML=items.map(([ok,t])=>`<li class="${ok?'ok':'bad'}"><span aria-hidden="true">${ok?'OK':'KO'}</span><span>${t}<span class="sr" style="position:absolute;left:-9999px">${ok?' : réussi':' : échec'}</span></span></li>`).join('');
+}
+
+/* --- A : prix et sensibilités --- */
+function drawA(p,nm){
+  const sg=p.type==='call'?1:-1;
+  const lo=0.5*Math.min(p.K,S0), hi=1.5*Math.max(p.K,S0), n=61, xs=[], pay=[], eu=[], am=[];
+  for(let i=0;i<n;i++){ const s=lo+(hi-lo)*i/(n-1); xs.push(s); pay.push(Math.max(sg*(s-p.K),0)); eu.push(bs(s,p.K,p.r,p.sig,p.T,p.type,p.q)); am.push(crr(s,p.K,p.r,p.sig,p.T,250,p.type,true,p.q)); }
+  const pe=bs(S0,p.K,p.r,p.sig,p.T,p.type,p.q), pa=crr(S0,p.K,p.r,p.sig,p.T,800,p.type,true,p.q), prem=Math.max(pa-pe,0), g=greeks(S0,p.K,p.r,p.sig,p.T,p.type,p.q);
+  const tiles=[['Prix européen',f(pe,3)],['Prix américain',f(pa,3)],['Valeur de l\'exercice anticipé',f(prem,3)],['Delta',f(g.delta,3)],['Gamma',f(g.gamma,4)],['Vega (+1 point de volatilité)',f(g.vega/100,3)],['Theta (par jour)',f(g.theta/365,3)],['Rho (+1 point de taux)',f(g.rho/100,3)]];
+  $('tilesA').innerHTML=tiles.map(([a,b])=>`<div class="tile"><span>${a}</span><b>${b}</b></div>`).join('');
+  legend($('lgA'),[{t:'Gain à l\'échéance',c:'var(--ink2)',d:'4 3',w:1.5},{t:'Prix européen (Black-Scholes)',c:'var(--s1)'},{t:'Prix américain (arbre, 250 pas)',c:'var(--s2)'}]);
+  const ymax=Math.max(...am,...pay)*1.05;
+  chart($('pA'),{aria:`Prix de l'option en fonction du prix de l\'action, comparé au gain à l'échéance`,xd:[lo,hi],yd:[0,ymax],xfmt:v=>f(v,0),yfmt:v=>f(v,0),xlabel:'Prix de l\'action S',ylabel:'Prix de l\'option',
+    layers:({L,X,Y,el})=>{
+      el('path',{d:path(xs,pay,X,Y),fill:'none',stroke:'var(--ink2)','stroke-width':1.5,'stroke-dasharray':'4 3'},L);
+      el('path',{d:path(xs,am,X,Y),fill:'none',stroke:'var(--s2)','stroke-width':2,'stroke-linejoin':'round'},L);
+      el('path',{d:path(xs,eu,X,Y),fill:'none',stroke:'var(--s1)','stroke-width':2,'stroke-linejoin':'round'},L);
+      el('line',{x1:X(S0),x2:X(S0),y1:Y(0),y2:Y(ymax),stroke:'var(--muted)','stroke-dasharray':'2 3'},L);
+      // tangente de pente delta en S0
+      const t0=S0-(S0-lo)*0.45, t1=S0+(hi-S0)*0.45;
+      el('line',{x1:X(t0),x2:X(t1),y1:Y(pe+g.delta*(t0-S0)),y2:Y(pe+g.delta*(t1-S0)),stroke:'var(--s3)','stroke-width':1.5},L);
+      el('circle',{cx:X(S0),cy:Y(pe),r:4.5,fill:'var(--s1)',stroke:'var(--surface)','stroke-width':2},L);
+    },
+    hover:{xs,tip:i=>`<i>S</i> ${f(xs[i],1)}<br><i>gain</i> ${f(pay[i],3)}<br><i>européen</i> ${f(eu[i],3)}<br><i>américain</i> ${f(am[i],3)}`,dots:i=>[{x:xs[i],y:eu[i],c:'var(--s1)'},{x:xs[i],y:am[i],c:'var(--s2)'}]}});
+  legend($('lgA'),[{t:'Gain à l\'échéance',c:'var(--ink2)',d:'4 3',w:1.5},{t:'Prix européen (Black-Scholes)',c:'var(--s1)'},{t:'Prix américain (arbre, 250 pas)',c:'var(--s2)'},{t:'Droite de pente delta en S0',c:'var(--s3)',w:1.5}]);
+  const moneyness=p.type==='call'?(S0>p.K?'dans la monnaie':S0<p.K?'hors de la monnaie':'à la monnaie'):(S0<p.K?'dans la monnaie':S0>p.K?'hors de la monnaie':'à la monnaie');
+  const intr=Math.max(sg*(S0-p.K),0), tv=pe-intr;
+  let why;
+  if(prem<1e-8) why=p.type==='call'&&p.q===0?`Sans dividende, exercer un call avant l'échéance ne rapporte rien de plus.`:`Ici, exercer avant l'échéance ne rapporte rien de plus.`;
+  else if(p.type==='put') why=`Pouvoir exercer avant l'échéance (option américaine) ajoute <b>${f(prem,2)}</b>, soit ${pct(prem/pe)} du prix.`;
+  else why=`Pouvoir exercer avant l'échéance (option américaine) ajoute <b>${f(prem,2)}</b>, soit ${pct(prem/pe)} du prix.`;
+  $('rA').innerHTML=`<span class="tag">Lecture</span>Le ${p.type==='call'?'call':'put'} vaut <b>${f(pe,2)}</b>. Si on l'exerçait maintenant, il rapporterait <b>${f(intr,2)}</b> : le reste de son prix (<b>${f(tv,2)}</b>) vient du temps qu'il reste, pendant lequel le cours peut encore bouger. Si l'action monte de 1, le prix de l'option ${g.delta<0?'baisse':'monte'} d'environ <b>${f(Math.abs(g.delta),2)}</b>. ${why}`;
+  const idx=sample(xs,11);
+  table($('tA'),['S','gain','européen','américain'],idx.map(i=>[f(xs[i],1),f(pay[i],3),f(eu[i],3),f(am[i],3)]));
+}
+
+/* --- B : arbre --- */
+function drawB(p,nm){
+  const exact=bs(S0,p.K,p.r,p.sig,p.T,p.type,p.q);
+  const Ns=[],er=[];
+  const add=N=>{ const v=crr(S0,p.K,p.r,p.sig,p.T,N,p.type,false,p.q); if(isFinite(v)){ const e=v-exact; if(Math.abs(e)>1e-13){ Ns.push(N); er.push(e); } } };
+  for(let N=10;N<=200;N++) add(N);
+  for(let N=204;N<=600;N+=4) add(N);
+  legend($('lgB'),[{t:'Erreur de l\'arbre pour chaque N',c:'var(--s1)',o:.45},{t:'Erreur maximale sur une zone',c:'var(--s1)',w:2.5},{t:'Référence : erreur proportionnelle à 1/N',c:'var(--s2)',d:'5 4',w:1.5}]);
+  if(Ns.length<30){ $('pB').innerHTML='<div class="empty">Ces paramètres rendent la probabilité risque-neutre de l\'arbre invalide pour presque tous les N. Réduisez r - q ou augmentez sigma.</div>'; $('rB').innerHTML=''; $('tB').innerHTML=''; return; }
+  const wins=[[20,40],[40,80],[80,160],[160,320],[320,600]], env=[];
+  wins.forEach(([a,b])=>{ let mx=0; Ns.forEach((N,i)=>{ if(N>=a&&N<b) mx=Math.max(mx,Math.abs(er[i])); }); if(mx>0) env.push([Math.sqrt(a*b),mx]); });
+  // régression log-log
+  const lx=env.map(e=>Math.log10(e[0])), ly=env.map(e=>Math.log10(e[1])), n=env.length, mx=lx.reduce((a,b)=>a+b)/n, my=ly.reduce((a,b)=>a+b)/n;
+  const slope=lx.reduce((s,v,i)=>s+(v-mx)*(ly[i]-my),0)/lx.reduce((s,v)=>s+(v-mx)*(v-mx),0);
+  const C=Math.pow(10,my-slope*mx), C1=env.reduce((s,e)=>s+e[0]*e[1],0)/n; // C1 = moyenne de N - erreur sur l'enveloppe
+  const ae=er.map(Math.abs), emin=Math.min(...ae), emax=Math.max(...ae);
+  chart($('pB'),{aria:'Erreur de l\'arbre CRR par rapport à Black-Scholes, en échelle log-log',xlog:true,ylog:true,xd:[10,600],yd:[Math.pow(10,Math.floor(Math.log10(emin*.8))),Math.pow(10,Math.ceil(Math.log10(emax*1.2)))],
+    xfmt:v=>f(v,0),yfmt:v=>f(v,Math.max(0,-Math.round(Math.log10(v)))),xlabel:'Nombre de pas N de l\'arbre (échelle logarithmique)',ylabel:'Écart entre l\'arbre et Black-Scholes',
+    layers:({L,X,Y,el})=>{
+      el('path',{d:path([10,600],[C1/10,C1/600],X,Y),fill:'none',stroke:'var(--s2)','stroke-width':1.5,'stroke-dasharray':'5 4'},L);
+      Ns.forEach((N,i)=>el('circle',{cx:X(N),cy:Y(ae[i]),r:2.2,fill:'var(--s1)',opacity:.4},L));
+      el('path',{d:path(env.map(e=>e[0]),env.map(e=>e[1]),X,Y),fill:'none',stroke:'var(--s1)','stroke-width':2.5,'stroke-linejoin':'round'},L);
+      env.forEach(e=>el('circle',{cx:X(e[0]),cy:Y(e[1]),r:4,fill:'var(--s1)',stroke:'var(--surface)','stroke-width':2},L));
+    },
+    hover:{xs:Ns,tip:i=>`<i>N</i> ${Ns[i]}<br><i>prix arbre</i> ${f(exact+er[i],5)}<br><i>erreur</i> ${er[i]<0?'-':'+'}${sci(ae[i])}`,dots:i=>[{x:Ns[i],y:ae[i],c:'var(--s1)'}]}});
+  let wmax=0,wmin=Infinity; Ns.forEach((N,i)=>{ if(N>=100&&N<130){ wmax=Math.max(wmax,ae[i]); wmin=Math.min(wmin,ae[i]); } });
+  const Nc=C1/0.01;
+  $('rB').innerHTML=`<span class="tag">Lecture</span>Plus l'arbre a de pas, plus son prix se rapproche de celui de Black-Scholes. Quand on double le nombre de pas, l'erreur est divisée par 2 environ. Pour avoir moins de 1 centime d'erreur, il faut environ <b>${f(Math.round(Nc/10)*10,0)}</b> pas.`;
+  const idx=sample(Ns,10);
+  table($('tB'),['N','prix arbre','erreur'],idx.map(i=>[Ns[i],f(exact+er[i],5),(er[i]<0?'-':'+')+sci(ae[i])]));
+}
+
+/* --- C : Monte Carlo --- */
+function drawC(p,nm){
+  const exact=bs(S0,p.K,p.r,p.sig,p.T,p.type,p.q), mc=monteCarlo(S0,p.K,p.r,p.sig,p.T,p.type,p.q,st.paths,seed);
+  legend($('lgC'),[{t:'Estimation simple, intervalle d\'erreur à 95 %',c:'var(--s2)'},{t:'Avec variable de contrôle, intervalle d\'erreur à 95 %',c:'var(--s1)',w:2.5},{t:'Prix exact (Black-Scholes)',c:'var(--ink)',d:'5 4',w:1.5}]);
+  const k0=mc.m.findIndex(m=>m>=300), idx=mc.m.map((_,i)=>i).filter(i=>i>=Math.max(k0,0));
+  let lo=Infinity,hi=-Infinity; idx.forEach(i=>{ lo=Math.min(lo,mc.plain[i]-mc.plainHW[i],mc.cv[i]-mc.cvHW[i]); hi=Math.max(hi,mc.plain[i]+mc.plainHW[i],mc.cv[i]+mc.cvHW[i]); });
+  lo=Math.min(lo,exact); hi=Math.max(hi,exact); const pad=(hi-lo)*.08; const yd=[Math.max(lo-pad,0),hi+pad];
+  const ms=idx.map(i=>mc.m[i]);
+  chart($('pC'),{aria:'Estimation Monte Carlo du prix avec intervalle de confiance, simple et avec variable de contrôle',xlog:true,xd:[Math.max(ms[0],100),Math.max(st.paths,ms[0]*2)],yd,xfmt:v=>f(v,0),yfmt:v=>f(v,2),xlabel:'Nombre de simulations (échelle logarithmique)',ylabel:'Prix estimé',
+    layers:({L,X,Y,el})=>{
+      const band=(c,hw,col,op)=>{ let d=path(ms,idx.map(i=>c[i]+hw[i]),X,Y); for(let j=ms.length-1;j>=0;j--) d+='L'+X(ms[j]).toFixed(1)+' '+Y(c[idx[j]]-hw[idx[j]]).toFixed(1); el('path',{d:d+'Z',fill:col,opacity:op},L); };
+      band(mc.plain,mc.plainHW,'var(--s2)',.16); band(mc.cv,mc.cvHW,'var(--s1)',.22);
+      el('path',{d:path(ms,idx.map(i=>mc.plain[i]),X,Y),fill:'none',stroke:'var(--s2)','stroke-width':1.5},L);
+      el('path',{d:path(ms,idx.map(i=>mc.cv[i]),X,Y),fill:'none',stroke:'var(--s1)','stroke-width':2.5},L);
+      el('line',{x1:X(ms[0]),x2:X(ms[ms.length-1]),y1:Y(exact),y2:Y(exact),stroke:'var(--ink)','stroke-dasharray':'5 4'},L);
+    },
+    hover:{xs:ms,tip:i=>{ const k=idx[i]; return `<i>simulations</i> ${f(mc.m[k],0)}<br><i>simple</i> ${f(mc.plain[k],3)} +/- ${f(mc.plainHW[k],3)}<br><i>contrôle</i> ${f(mc.cv[k],3)} +/- ${f(mc.cvHW[k],3)}<br><i>exact</i> ${f(exact,3)}`; },dots:i=>{ const k=idx[i]; return [{x:ms[i],y:mc.plain[k],c:'var(--s2)'},{x:ms[i],y:mc.cv[k],c:'var(--s1)'}]; }}});
+  const L=mc.m.length-1, inP=Math.abs(mc.plain[L]-exact)<=mc.plainHW[L], inC=Math.abs(mc.cv[L]-exact)<=mc.cvHW[L];
+  $('rC').innerHTML=`<span class="tag">Lecture</span>Avec <b>${f(st.paths,0)}</b> simulations, le calcul simple donne <b>${f(mc.plain[L],2)} +/- ${f(mc.plainHW[L],2)}</b>. Avec la variable de contrôle, une astuce pour être plus précis, on obtient <b>${f(mc.cv[L],2)} +/- ${f(mc.cvHW[L],2)}</b>. Le prix exact est <b>${f(exact,2)}</b>. Pour une précision 10 fois meilleure, il faut 100 fois plus de simulations.`;
+  const ti=sample(ms,9);
+  table($('tC'),['n','simple','+/- erreur','contrôle','+/- erreur'],ti.map(i=>{ const k=idx[i]; return [f(mc.m[k],0),f(mc.plain[k],4),f(mc.plainHW[k],4),f(mc.cv[k],4),f(mc.cvHW[k],4)]; }));
+}
+
+/* --- D : exercice anticipé --- */
+function drawD(p,nm){
+  legend($('lgD'),[{t:'Limite d\'exercice',c:'var(--s2)',w:2.5},{t:'Strike K',c:'var(--ink2)',d:'4 3',w:1.5},{t:'Prix initial de l\'action S0',c:'var(--s1)',d:'2 3',w:1.5}]);
+  const bd=boundary(S0,p.K,p.r,p.sig,p.T,400,p.type,p.q);
+  if(!bd||bd.t.length<5){
+    $('pD').innerHTML=`<div class="empty">${p.type==='call'&&p.q===0?'Aucune limite : pour un call sans dividende, l\'exercice anticipé n\'est jamais optimal.':'Aucune limite d\'exercice dans l\'arbre pour ces paramètres : détenir l\'option vaut mieux que l\'exercer à tout instant.'}</div>`;
+    $('rD').innerHTML=p.type==='call'&&p.q===0?`<span class="tag">Lecture</span>Sans dividende, exercer un call avant l'échéance ne rapporte rien de plus qu'attendre : le prix américain est égal au prix européen. Mettez un dividende q supérieur à 0 pour voir apparaître la limite d'exercice.`:`<span class="tag">Lecture</span>Pour ces paramètres, attendre est toujours aussi bon qu'exercer tout de suite.`;
+    $('tD').innerHTML=''; return;
+  }
+  const put=p.type==='put', ymin=put?Math.min(...bd.b,p.K)*.9:Math.min(p.K,S0)*.95, ymax=put?Math.max(p.K,S0)*1.05:Math.max(...bd.b,p.K,S0)*1.05, ylo=put?Math.min(ymin,Math.min(...bd.b)*.97):ymin;
+  chart($('pD'),{aria:'Limite d\'exercice en fonction du temps',xd:[0,p.T],yd:[Math.max(0,Math.floor(ylo/5)*5),Math.ceil(ymax/5)*5],xfmt:v=>f(v,2),yfmt:v=>f(v,0),xlabel:'Temps écoulé t (années)',ylabel:'Prix de l\'action S',
+    layers:({L,X,Y,el})=>{
+      const yEdge=put?Math.max(0,Math.floor(ylo/5)*5):Math.ceil(ymax/5)*5;
+      let d=path(bd.t,bd.b,X,Y)+'L'+X(bd.t[bd.t.length-1]).toFixed(1)+' '+Y(yEdge).toFixed(1)+'L'+X(bd.t[0]).toFixed(1)+' '+Y(yEdge).toFixed(1)+'Z';
+      el('path',{d,fill:'var(--s2)',opacity:.13},L);
+      el('line',{x1:X(0),x2:X(p.T),y1:Y(p.K),y2:Y(p.K),stroke:'var(--ink2)','stroke-dasharray':'4 3'},L);
+      el('line',{x1:X(0),x2:X(p.T),y1:Y(S0),y2:Y(S0),stroke:'var(--s1)','stroke-dasharray':'2 3'},L);
+      el('path',{d:path(bd.t,bd.b,X,Y),fill:'none',stroke:'var(--s2)','stroke-width':2.5,'stroke-linejoin':'round'},L);
+      const tx=el('text',{x:X(p.T*.28),y:put?Y(yEdge)-14:Y(yEdge)+22,'text-anchor':'middle',class:'lbl'},L); tx.textContent='zone où exercer immédiatement';
+    },
+    hover:{xs:bd.t,tip:i=>`<i>t</i> ${f(bd.t[i],3)} an<br><i>S*(t)</i> ${f(bd.b[i],2)}<br><i>S*/K</i> ${pct(bd.b[i]/p.K)}`,dots:i=>[{x:bd.t[i],y:bd.b[i],c:'var(--s2)'}]}});
+  const mid=bd.t.findIndex(t=>t>=p.T/2), bm=bd.b[mid>=0?mid:0], first=bd.b[0], t0=bd.t[0];
+  const inside=put?S0<=bm:S0>=bm;
+  $('rD').innerHTML=`<span class="tag">Lecture</span>${put?'Sous':'Au-dessus de'} la courbe orange, il vaut mieux exercer tout de suite que d'attendre. À la moitié de la durée, cette limite est à <b>${f(bm,1)}</b>. L'action vaut ${f(S0,0)} : elle est ${inside?'<strong>dans</strong>':'<strong>hors de</strong>'} cette zone, donc ${inside?'il vaut mieux exercer tout de suite':'il vaut mieux garder l\'option'}. Plus l'échéance approche, plus la limite se rapproche de <b>${f(bd.b[bd.b.length-1],0)}</b>.`;
+  const ti=sample(bd.t,9);
+  table($('tD'),['t (an)','S*(t)','S*/K'],ti.map(i=>[f(bd.t[i],3),f(bd.b[i],2),pct(bd.b[i]/p.K)]));
+}
+
+/* ============================ ÉVÉNEMENTS ============================ */
+let raf=0; const schedule=()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(render); };
+['K','sig','r','T','q','paths'].forEach(k=>$(k).addEventListener('input',e=>{ st[k]=+e.target.value; schedule(); }));
+document.querySelectorAll('input[name=type]').forEach(r=>r.addEventListener('change',e=>{ st.type=e.target.value; schedule(); }));
+$('resim').addEventListener('click',()=>{ seed=(seed*1664525+1013904223)>>>0; schedule(); });
+$('reset').addEventListener('click',()=>{ st=Object.assign({},DEF); ['K','sig','r','T','q','paths'].forEach(k=>$(k).value=st[k]); $('t-'+st.type).checked=true; seed=7; schedule(); });
+let rw=0; new ResizeObserver(es=>{ const w=document.body.clientWidth; if(w!==rw){ rw=w; schedule(); } }).observe(document.body);
+render();
+})();
+</script>
+<script>
+document.getElementById('theme').addEventListener('click',function(){
+  var r=document.documentElement, sombre=r.getAttribute('data-theme')==='dark';
+  r.setAttribute('data-theme',sombre?'light':'dark');
+  this.textContent=sombre?'Passer en thème sombre':'Passer en thème clair';
+});
+</script>
+</body>
+</html>
