@@ -4,7 +4,7 @@ Je réalise ce projet en tant qu'étudiant en mathématiques et informatique int
 
 Il calcule le prix d'une option de quatre façons différentes, puis compare les résultats avec la formule exacte de Black-Scholes.
 
-**Démo interactive :** [https://prospere-dev.github.io/Pricing-Lab/lab/] - **Auteur** : Prospere ZANJIO
+**Démo interactive :** https://prospere-dev.github.io/Pricing-Lab/lab/ - **Auteur** : Prospere ZANJIO
 
 ## D'où viennent les formules
 
